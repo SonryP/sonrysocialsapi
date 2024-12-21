@@ -15,7 +15,7 @@ public class PostHandler : IPostHandler
 
     public async Task<Post> CreatePost(PostRequest post, string username)
     {
-        var findUser = await _context.Users.FirstOrDefaultAsync(u=>u.Username == username);
+        var findUser = await _context.Users.FirstOrDefaultAsync(u=>u.Username.ToLower().Equals(username.ToLower()));
         if (findUser == null) return null;
         Post _post = new Post();
         _post.Content = post.Content;

@@ -33,9 +33,21 @@ public class PostHandler : IPostHandler
         return _post;
     }
 
-    public async Task<List<Post>> GetPosts()
+    public async Task<List<Post>> GetPosts(string username)
     {
-        return await _context.Posts.Include(p=> p.User).Where(p=>p.Active).OrderByDescending(p=>p.Created).ToListAsync();
+        var posts = await _context.Posts
+            .Include(p => p.User)
+            .Include(p => p.LikesList) 
+            .Where(p => p.Active)
+            .OrderByDescending(p => p.Created)
+            .ToListAsync();
+
+        foreach (var post in posts)
+        {
+            post.LikedByUser = post.LikesList.Any(like => like.User.Username == username && like.IsLiked);
+        }
+
+        return posts;
     }
 
     public async Task<bool> DeletePost(int postId)
@@ -48,14 +60,24 @@ public class PostHandler : IPostHandler
         return true;
     }
 
-    public async Task<bool> LikePost(int postId, int userId)
+    public async Task<bool> LikePost(int postId, string username)
     {
         var post = await _context.Posts.Include(p=>p.LikesList).FirstOrDefaultAsync(p=>p.Id==postId);
         if (post == null) return false;
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username.ToLower().Equals(username.ToLower()));
         if (user == null) return false;
-        bool userAlreadyLiked = post.LikesList.Any(like => like.User.Id == userId);
+        bool userAlreadyLiked = post.LikesList.Any(like => like.User.Id == user.Id && like.IsLiked);
         if (userAlreadyLiked) return false;
+        Like liked = post.LikesList.FirstOrDefault(like => like.User.Id == user.Id && !like.IsLiked);
+        if (liked != null)
+        {
+            liked.IsLiked = true;
+            post.Likes++;
+            _context.Posts.Update(post);
+            _context.Likes.Update(liked);
+            await _context.SaveChangesAsync();
+            return true;
+        }
         
         Like like = new Like();
         like.IsLiked = true;
@@ -69,7 +91,7 @@ public class PostHandler : IPostHandler
         return true;
     }
 
-    public async Task<bool> UnlikePost(int postId, int userId)
+    public async Task<bool> UnlikePost(int postId, string username)
     {
         var post = await _context.Posts
             .Include(p=>p.User)
@@ -77,7 +99,7 @@ public class PostHandler : IPostHandler
             .FirstOrDefaultAsync(p=>p.Id == postId);
         if (post == null) return false;
         if (post.User == null) return false;
-        var like = post.LikesList.FirstOrDefault(l=>l.User.Id == post.User.Id && l.IsLiked);
+        var like = post.LikesList.FirstOrDefault(l=>l.User.Username.ToLower().Equals(username.ToLower()) && l.IsLiked);
         if (like == null) return false;
         post.Likes--;
         like.IsLiked = false;

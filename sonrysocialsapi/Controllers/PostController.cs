@@ -22,7 +22,9 @@ public class PostController: ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var posts = await _postHandler.GetPosts();
+        var identity = User.Identity as ClaimsIdentity;
+        var username = identity.Claims.First(c => c.Type == "username").Value;
+        var posts = await _postHandler.GetPosts(username);
         if (posts.Count == 0 || posts == null) return NoContent();
         return Ok(posts);
     }
@@ -35,6 +37,26 @@ public class PostController: ControllerBase
         Post _post = await _postHandler.CreatePost(post, username);
         if (_post == null) return BadRequest();
         return Ok(_post);
+    }
+
+    [HttpPost("Like")]
+    public async Task<IActionResult> LikePost([FromQuery] int postId)
+    {
+        var identity = User.Identity as ClaimsIdentity;
+        var username = identity.Claims.First(c => c.Type == "username").Value;
+        var result = await _postHandler.LikePost(postId, username);
+        if (!result) return BadRequest();
+        return Ok(result);
+    }
+    
+    [HttpPost("Unlike")]
+    public async Task<IActionResult> UnLikePost([FromQuery] int postId)
+    {
+        var identity = User.Identity as ClaimsIdentity;
+        var username = identity.Claims.First(c => c.Type == "username").Value;
+        var result = await _postHandler.UnlikePost(postId, username);
+        if (!result) return BadRequest();
+        return Ok(result);
     }
     
 }

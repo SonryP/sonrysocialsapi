@@ -23,7 +23,7 @@ public class ActivationController : ControllerBase
     {
         var identity = User.Identity as ClaimsIdentity;
         string serverId = identity.Claims.FirstOrDefault().Value;
-        var activationData = _userHandler.GenerateActivationToken(request.Username, request.Uuid, serverId);
+        var activationData = await _userHandler.GenerateActivationToken(request.Username, request.Uuid, serverId);
         if(activationData == null) return Unauthorized();
         return Ok(activationData);
     }

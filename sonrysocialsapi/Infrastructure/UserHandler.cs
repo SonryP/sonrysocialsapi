@@ -39,8 +39,8 @@ public class UserHandler : IUserHandler
         await _context.SaveChangesAsync();
         ActivationResponse response = new ActivationResponse();
         string token = activation.ActivationToken;
-        response.ActivationToken = token.Substring(0,token.Length-4);
-        response.ActivationDigits= token.Substring(token.Length-4);
+        response.ActivationToken  = token.Substring(0,token.Length-4);
+        response.ActivationDigits = token.Substring(token.Length-4);
         return response;
     }
 

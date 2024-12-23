@@ -96,6 +96,7 @@ public class PostHandler : IPostHandler
         var post = await _context.Posts
             .Include(p=>p.User)
             .Include(p=>p.LikesList)
+            .ThenInclude(l=>l.User)
             .FirstOrDefaultAsync(p=>p.Id == postId);
         if (post == null) return false;
         if (post.User == null) return false;

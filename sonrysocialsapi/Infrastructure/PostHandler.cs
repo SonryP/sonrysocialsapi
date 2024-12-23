@@ -62,7 +62,7 @@ public class PostHandler : IPostHandler
 
     public async Task<bool> LikePost(int postId, string username)
     {
-        var post = await _context.Posts.Include(p=>p.LikesList).FirstOrDefaultAsync(p=>p.Id==postId);
+        var post = await _context.Posts.Include(p=>p.LikesList).ThenInclude(l => l.User ).FirstOrDefaultAsync(p=>p.Id==postId);
         if (post == null) return false;
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Username.ToLower().Equals(username.ToLower()));
         if (user == null) return false;

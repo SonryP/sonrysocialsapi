@@ -12,7 +12,6 @@ public class Post
     public DateTime Created { get; set; }
     public int Likes { get; set; }
     public User User { get; set; }
-    [JsonIgnore]
     public List<Like> LikesList { get; set; }
     public byte[]? Attachment { get; set; }
     public bool Active { get; set; }

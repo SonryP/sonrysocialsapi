@@ -149,6 +149,34 @@ namespace sonrysocialsapi.Migrations
                     b.ToTable("Servers");
                 });
 
+            modelBuilder.Entity("sonrysocialsapi.Models.Share", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ShareHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("Shares");
+                });
+
             modelBuilder.Entity("sonrysocialsapi.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -220,6 +248,17 @@ namespace sonrysocialsapi.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("sonrysocialsapi.Models.Share", b =>
+                {
+                    b.HasOne("sonrysocialsapi.Models.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("sonrysocialsapi.Models.Post", b =>

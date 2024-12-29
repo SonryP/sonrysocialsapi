@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using sonrysocialsapi.Infrastructure;
 using sonrysocialsapi.Models;
 using sonrysocialsapi.Models.Requests;
+using System.Web;
+using sonrysocialsapi.Models.Responses;
 
 namespace sonrysocialsapi.Controllers;
 
@@ -57,6 +59,26 @@ public class PostController: ControllerBase
         var result = await _postHandler.UnlikePost(postId, username);
         if (!result) return BadRequest();
         return Ok(result);
+    }
+
+    [HttpGet("Share")]
+    public async Task<IActionResult> SharePost([FromQuery] int postId)
+    {
+        var identity = User.Identity as ClaimsIdentity;
+        var username = identity.Claims.First(c => c.Type == "username").Value;
+        ShareResponse response = await _postHandler.SharePost(postId, username);
+        if (string.IsNullOrEmpty(response.ShareHash)) return BadRequest();
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("GetPost")]
+    public async Task<IActionResult> GetPost([FromQuery] string postId)
+    {
+        string decodedPostId = Uri.UnescapeDataString(postId);
+        var post = await _postHandler.GetPost(decodedPostId);
+        if (post.User == null) return BadRequest();
+        return Ok(post);
     }
     
 }

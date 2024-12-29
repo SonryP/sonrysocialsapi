@@ -1,6 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Web;
 using Microsoft.EntityFrameworkCore;
 using sonrysocialsapi.Models;
 using sonrysocialsapi.Models.Requests;
+using sonrysocialsapi.Models.Responses;
 
 namespace sonrysocialsapi.Infrastructure;
 
@@ -107,5 +111,46 @@ public class PostHandler : IPostHandler
         _context.Posts.Update(post);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<Post> GetPost(string postId)
+    {
+        var share = await _context.Shares.Include(s=>s.Post).ThenInclude(p=>p.User).Include(s=>s.Post).ThenInclude(p=>p.LikesList).Where(s=>s.ShareHash == postId).FirstOrDefaultAsync();
+        if (share == null) return new Post();
+        if (share.Post == null) return new Post();
+        return share.Post;
+    }
+
+    public async Task<ShareResponse> SharePost(int postId, string username)
+    {
+        var post = await _context.Posts.Include(p=>p.User).FirstOrDefaultAsync(p=>p.Id==postId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username.ToLower().Equals(username.ToLower()));
+        if (post == null) return new ShareResponse();
+        if (user == null) return new ShareResponse();
+        if (post.User != user) return new ShareResponse();
+        var share = await _context.Shares.Include(s=>s.Post).Where(s=>s.Post == post).FirstOrDefaultAsync();
+        if (share != null)
+        {
+            return new ShareResponse(){ShareHash = share.ShareHash};
+        }
+        string hash = GeneratePostShareHash(post.Content.ToLower(), username);
+        if (string.IsNullOrEmpty(hash)) return new ShareResponse();
+        Share sharePost = new Share();
+        sharePost.Post = post;
+        sharePost.ShareHash = hash;
+        sharePost.Created = DateTime.UtcNow;
+        sharePost.Active = true;
+        _context.Shares.Add(sharePost);
+        await _context.SaveChangesAsync();
+        return new ShareResponse() { ShareHash = hash };
+    }
+    
+    private string GeneratePostShareHash(string postId, string salt)
+    {
+        using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(salt)))
+        {
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(postId));
+            return Convert.ToBase64String(hash);
+        }
     }
 }

@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Web;
 using Microsoft.EntityFrameworkCore;
 using sonrysocialsapi.Models;
 using sonrysocialsapi.Models.Requests;
@@ -41,7 +40,7 @@ public class PostHandler : IPostHandler
     {
         var posts = await _context.Posts
             .Include(p => p.User)
-            .Include(p => p.LikesList) 
+            .Include(p => p.LikesList.Where(l=>l.IsLiked)) 
             .Where(p => p.Active)
             .OrderByDescending(p => p.Created)
             .ToListAsync();
@@ -115,9 +114,18 @@ public class PostHandler : IPostHandler
 
     public async Task<Post> GetPost(string postId)
     {
-        var share = await _context.Shares.Include(s=>s.Post).ThenInclude(p=>p.User).Include(s=>s.Post).ThenInclude(p=>p.LikesList).Where(s=>s.ShareHash == postId).FirstOrDefaultAsync();
+        var share = await _context.Shares
+            .Include(s=>s.Post)
+            .ThenInclude(p=>p.User)
+            .Include(s=>s.Post)
+            .ThenInclude(p=>p.LikesList.Where(l=>l.IsLiked))
+            .Where(s=>s.ShareHash == postId)
+            .FirstOrDefaultAsync();
         if (share == null) return new Post();
         if (share.Post == null) return new Post();
+        share.AccessCount++;
+        _context.Shares.Update(share);
+        await _context.SaveChangesAsync();
         return share.Post;
     }
 

@@ -10,4 +10,5 @@ public class Share
     public Post Post { get; set; }
     public DateTime Created { get; set; }
     public bool Active { get; set; }
+    public int AccessCount { get; set; }
 }

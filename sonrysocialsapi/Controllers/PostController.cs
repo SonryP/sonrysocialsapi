@@ -22,11 +22,11 @@ public class PostController: ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get([FromQuery] int page, [FromQuery] int pageSize)
     {
         var identity = User.Identity as ClaimsIdentity;
         var username = identity.Claims.First(c => c.Type == "username").Value;
-        var posts = await _postHandler.GetPosts(username);
+        var posts = await _postHandler.GetPosts(username, page, pageSize);
         if (posts.Count == 0 || posts == null) return NoContent();
         return Ok(posts);
     }

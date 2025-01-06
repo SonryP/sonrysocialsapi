@@ -36,20 +36,30 @@ public class PostHandler : IPostHandler
         return _post;
     }
 
-    public async Task<List<Post>> GetPosts(string username)
+    public async Task<List<Post>> GetPosts(string username, int page=0, int pageSize=0)
     {
-        var posts = await _context.Posts
+        var posts = new List<Post>();
+        var postsQuery = _context.Posts
             .Include(p => p.User)
-            .Include(p => p.LikesList.Where(l=>l.IsLiked)) 
+            .Include(p => p.LikesList.Where(l => l.IsLiked))
+            .ThenInclude(l=>l.User)
             .Where(p => p.Active)
-            .OrderByDescending(p => p.Created)
-            .ToListAsync();
-
-        foreach (var post in posts)
+            .OrderByDescending(p => p.Created);
+        if (page <= 0 || pageSize <= 0) posts = await postsQuery.ToListAsync();
+        else 
         {
-            post.LikedByUser = post.LikesList.Any(like => like.User.Username == username && like.IsLiked);
+            posts = await postsQuery.Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
+        if (posts.Any())
+        {
+            foreach (var post in posts)
+            {
+                post.LikedByUser = post.LikesList.Any(like => like.User.Username == username && like.IsLiked);
+            }
+        }
         return posts;
     }
 
@@ -119,6 +129,7 @@ public class PostHandler : IPostHandler
             .ThenInclude(p=>p.User)
             .Include(s=>s.Post)
             .ThenInclude(p=>p.LikesList.Where(l=>l.IsLiked))
+            .ThenInclude(l=>l.User)
             .Where(s=>s.ShareHash == postId)
             .FirstOrDefaultAsync();
         if (share == null) return new Post();
